@@ -7,6 +7,7 @@
   --border: #e3e4e8;
   --ok: #1f9d55;
   --bad: #d64545;
+  --lantern: #ffb020;
   --stage-bg: radial-gradient(ellipse at 50% 30%, #273043 0%, #12151c 70%);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -176,4 +177,101 @@ main {
   margin: 0;
   padding: 16px;
   color: #8b93a5;
+}
+
+.sidebar {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.hall-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.hall-panel h2 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.hall-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.hall-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hall-floor {
+  width: 2ch;
+  text-align: right;
+  font: 600 0.9rem var(--mono);
+  color: var(--text-muted);
+}
+
+.hall-btn,
+.hall-btn-spacer {
+  width: 36px;
+  height: 32px;
+}
+
+.hall-btn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.hall-btn:hover:not(:disabled) {
+  border-color: var(--lantern);
+  color: var(--text-h);
+}
+
+.hall-btn:focus-visible {
+  outline: 2px solid var(--lantern);
+  outline-offset: 2px;
+}
+
+.hall-btn.is-on {
+  background: var(--lantern);
+  border-color: var(--lantern);
+  color: #1a1204;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--lantern) 60%, transparent);
+}
+
+.hall-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.toast-region {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  z-index: 10;
+}
+
+.toast {
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useCursor } from '@react-three/drei';
 import { Direction } from '../../constants.js';
 import { LANTERN_ON } from '../../theme.js';
 import { Label } from './Label.jsx';
@@ -10,7 +12,7 @@ const FRAME = '#56607a';
 const WALL = '#2b3242';
 
 // Khung toà nhà: tường sau, cột, dầm mỗi tầng, cột sảnh bên trái
-export function Structure({ floorCount, elevatorCount, pendingPickups }) {
+export function Structure({ floorCount, elevatorCount, pendingPickups, onCall, disabled }) {
   const width = buildingWidth(elevatorCount);
   const height = buildingHeight(floorCount);
   const left = -width / 2 - LANDING_W;
@@ -75,6 +77,8 @@ export function Structure({ floorCount, elevatorCount, pendingPickups }) {
             hasDown={floor > 1}
             upOn={pendingPickups[Direction.UP].includes(floor)}
             downOn={pendingPickups[Direction.DOWN].includes(floor)}
+            onCall={(direction) => onCall(floor, direction)}
+            disabled={disabled}
           />
         </group>
       ))}
@@ -82,29 +86,57 @@ export function Structure({ floorCount, elevatorCount, pendingPickups }) {
   );
 }
 
-// Cặp đèn ▲▼ ở sảnh mỗi tầng, sáng khi có người đang chờ
-function HallLantern({ position, hasUp, hasDown, upOn, downOn }) {
+// Kéo quá ngần này pixel thì coi là xoay camera, không phải bấm nút
+const CLICK_MAX_DRAG_PX = 5;
+
+// Cặp nút ▲▼ ở sảnh mỗi tầng: bấm để gọi thang, sáng khi có người đang chờ
+function HallLantern({ position, hasUp, hasDown, upOn, downOn, onCall, disabled }) {
   return (
     <group position={position}>
       <mesh position={[0, 0, -0.03]}>
         <boxGeometry args={[0.22, 0.46, 0.04]} />
         <meshStandardMaterial color="#10131a" metalness={0.5} roughness={0.4} />
       </mesh>
-      {hasUp && <Arrow y={0.1} rotation={0} on={upOn} />}
-      {hasDown && <Arrow y={-0.1} rotation={Math.PI} on={downOn} />}
+      {hasUp && (
+        <HallButton y={0.1} rotation={0} on={upOn} disabled={disabled} onPress={() => onCall(Direction.UP)} />
+      )}
+      {hasDown && (
+        <HallButton y={-0.1} rotation={Math.PI} on={downOn} disabled={disabled} onPress={() => onCall(Direction.DOWN)} />
+      )}
     </group>
   );
 }
 
-function Arrow({ y, rotation, on }) {
+function HallButton({ y, rotation, on, disabled, onPress }) {
+  const [hovered, setHovered] = useState(false);
+  const active = hovered && !disabled;
+  useCursor(active);
+
+  const lit = on || active;
   return (
-    <mesh position={[0, y, 0]} rotation={[0, 0, rotation]}>
-      <coneGeometry args={[0.07, 0.12, 3]} />
-      <meshStandardMaterial
-        color={on ? LANTERN_ON : '#5a6070'}
-        emissive={on ? LANTERN_ON : '#000000'}
-        emissiveIntensity={on ? 2 : 0}
-      />
-    </mesh>
+    <group position={[0, y, 0]}>
+      <mesh rotation={[0, 0, rotation]}>
+        <coneGeometry args={[0.07, 0.12, 3]} />
+        <meshStandardMaterial
+          color={lit ? LANTERN_ON : '#5a6070'}
+          emissive={lit ? LANTERN_ON : '#000000'}
+          emissiveIntensity={on ? 2 : active ? 0.6 : 0}
+        />
+      </mesh>
+      {/* Vùng bấm trong suốt, rộng hơn mũi tên để dễ trúng */}
+      <mesh
+        position={[0, 0, 0.02]}
+        onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
+        onPointerOut={() => setHovered(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (disabled || e.delta > CLICK_MAX_DRAG_PX) return;
+          onPress();
+        }}
+      >
+        <planeGeometry args={[0.24, 0.2]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
   );
 }
