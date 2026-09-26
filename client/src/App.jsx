@@ -10,9 +10,14 @@ function App() {
   const { toast, show: showToast } = useToast();
 
   // Không tự bật đèn ở client: đợi snapshot từ server để giao diện luôn khớp thực tế
-  const callElevator = useCallback((floor, direction) => {
-    send('pickup', { floor, direction }).catch((err) => showToast(err.message));
+  const sendCommand = useCallback((event, payload) => {
+    send(event, payload).catch((err) => showToast(err.message));
   }, [send, showToast]);
+
+  const callElevator = useCallback(
+    (floor, direction) => sendCommand('pickup', { floor, direction }),
+    [sendCommand],
+  );
 
   return (
     <main>
@@ -30,7 +35,12 @@ function App() {
             <Building snapshot={snapshot} onCall={callElevator} disabled={!connected} />
           </section>
           <aside>
-            <ElevatorStatus elevators={snapshot.elevators} />
+            <ElevatorStatus
+              elevators={snapshot.elevators}
+              floorCount={snapshot.floorCount}
+              onCommand={sendCommand}
+              disabled={!connected}
+            />
           </aside>
         </div>
       ) : (

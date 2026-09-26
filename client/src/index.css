@@ -337,6 +337,89 @@ main {
 .status-card dt { color: var(--text-muted); }
 .status-card dd { margin: 0; font-family: var(--mono); }
 
+/* ---- Bảng nút trong cabin ---- */
+
+.car-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.car-floors {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.car-doors {
+  display: grid;
+  gap: 6px;
+}
+
+.car-btn,
+.door-btn {
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.car-btn {
+  border-radius: 50%;
+  aspect-ratio: 1;
+  justify-self: center;
+  font: 600 0.8rem var(--mono);
+}
+
+.door-btn {
+  width: 44px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  letter-spacing: -2px;
+}
+
+.car-btn:hover:not(:disabled),
+.door-btn:hover:not(:disabled) {
+  border-color: var(--car-color);
+  color: var(--text-h);
+}
+
+.car-btn:focus-visible,
+.door-btn:focus-visible {
+  outline: 2px solid var(--car-color);
+  outline-offset: 2px;
+}
+
+.door-btn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--car-color) 20%, var(--bg));
+}
+
+.car-btn.is-on {
+  background: var(--car-color);
+  border-color: var(--car-color);
+  color: #fff;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--car-color) 60%, transparent);
+}
+
+.car-btn:disabled,
+.door-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car-btn,
+  .door-btn {
+    transition: none;
+  }
+}
+
 /* ---- Toast ---- */
 
 .toast-region {

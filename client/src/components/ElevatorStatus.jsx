@@ -1,5 +1,6 @@
 import { Direction, ElevatorStateName } from '../constants.js';
 import { elevatorColor } from '../theme.js';
+import { CarPanel } from './CarPanel.jsx';
 
 const STATE_LABEL = {
   [ElevatorStateName.WAITING]: 'Idle',
@@ -7,8 +8,8 @@ const STATE_LABEL = {
   [ElevatorStateName.DOOR_OPEN]: 'Doors open',
 };
 
-// Thẻ trạng thái từng thang: số liệu dạng chữ, đọc được bằng trình đọc màn hình
-export function ElevatorStatus({ elevators }) {
+// Thẻ từng thang: trạng thái dạng chữ (đọc được bằng trình đọc màn hình) + bảng nút trong cabin
+export function ElevatorStatus({ elevators, floorCount, onCommand, disabled }) {
   return (
     <ul className="status-list">
       {elevators.map((e, i) => {
@@ -35,6 +36,7 @@ export function ElevatorStatus({ elevators }) {
               <dt>Pickups</dt>
               <dd>{pickups.length ? pickups.join(', ') : '—'}</dd>
             </dl>
+            <CarPanel elevator={e} floorCount={floorCount} onCommand={onCommand} disabled={disabled} />
           </li>
         );
       })}
