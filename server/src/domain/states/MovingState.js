@@ -6,16 +6,19 @@ export class MovingState extends ElevatorState {
   }
 
   step(elevator) {
-    if (!elevator.hasStops()) {
+    if (!elevator.hasRequests()) {
       elevator.becomeWaiting();
       return;
     }
 
-    if (!elevator.hasStopHere()) {
+    if (!elevator.shouldStopHere()) {
+      if (!elevator.hasRequestsAhead()) {
+        elevator.reverseDirection();
+      }
       elevator.moveOneFloor();
     }
 
-    if (elevator.hasStopHere()) {
+    if (elevator.shouldStopHere()) {
       elevator.arriveHere();
     }
   }

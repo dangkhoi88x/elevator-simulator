@@ -6,7 +6,8 @@ export class WaitingState extends ElevatorState {
   }
 
   step(elevator) {
-    if (!elevator.hasStops()) return;
+    if (!elevator.hasRequests()) return;
+    elevator.chooseDirection();
     elevator.startMoving();
     elevator.step();
   }
