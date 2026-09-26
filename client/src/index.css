@@ -5,10 +5,16 @@
   --bg: #f6f7f9;
   --surface: #fff;
   --border: #e3e4e8;
+  --shaft-bg: #eceef3;
+  --car-body: #d9dde5;
+  --car-inside: #fff4d6;
   --ok: #1f9d55;
   --bad: #d64545;
   --lantern: #ffb020;
-  --stage-bg: radial-gradient(ellipse at 50% 30%, #273043 0%, #12151c 70%);
+
+  --floor-h: 52px;
+  --shaft-w: clamp(56px, 14vw, 88px);
+  --step: 1s; /* khớp STEP_INTERVAL_MS của server: 1 tầng mỗi nhịp */
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
@@ -28,6 +34,9 @@
     --bg: #101218;
     --surface: #181b23;
     --border: #2a2e39;
+    --shaft-bg: #1f232d;
+    --car-body: #3a404d;
+    --car-inside: #5a4a26;
     --ok: #3ccf7e;
     --bad: #ff6b6b;
   }
@@ -39,10 +48,12 @@ body {
 }
 
 main {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px 16px;
 }
+
+/* ---- Header ---- */
 
 .app-header {
   display: flex;
@@ -81,38 +92,195 @@ main {
   color: var(--text-muted);
 }
 
+.waiting {
+  color: var(--text-muted);
+}
+
+/* ---- Layout ---- */
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   gap: 16px;
+  align-items: start;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 760px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
 }
 
-.stage {
-  position: relative;
-  height: min(78vh, 760px);
-  min-height: 460px;
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
-  background: var(--stage-bg);
+  padding: 16px;
 }
 
-.scene {
-  touch-action: none;
+/* ---- Toà nhà ---- */
+
+.building-scroll {
+  overflow-x: auto; /* nhiều thang quá thì cuộn ngang trong khung, không vỡ trang */
 }
 
-.stage-hint {
-  position: absolute;
-  left: 12px;
-  bottom: 8px;
-  margin: 0;
+.building {
+  display: grid;
+  grid-template-columns: auto repeat(var(--shafts), var(--shaft-w));
+  grid-template-rows: repeat(var(--floors), var(--floor-h));
+  column-gap: 10px;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.lobby {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.floor-number {
+  width: 2ch;
+  text-align: right;
+  font: 600 0.95rem var(--mono);
+  color: var(--text-muted);
+}
+
+.hall-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.hall-btn,
+.hall-btn-spacer {
+  width: 34px;
+  height: 34px;
+}
+
+.hall-btn {
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-muted);
   font-size: 0.75rem;
-  color: #8b93a5;
-  pointer-events: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
+
+.hall-btn:hover:not(:disabled) {
+  border-color: var(--lantern);
+  color: var(--text-h);
+}
+
+.hall-btn:focus-visible {
+  outline: 2px solid var(--lantern);
+  outline-offset: 2px;
+}
+
+.hall-btn.is-on {
+  background: var(--lantern);
+  border-color: var(--lantern);
+  color: #1a1204;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--lantern) 60%, transparent);
+}
+
+.hall-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ---- Trục thang + cabin ---- */
+
+.shaft {
+  grid-row: 1 / -1;
+  position: relative;
+  display: grid;
+  grid-template-rows: repeat(var(--floors), var(--floor-h));
+  background: var(--shaft-bg);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.shaft-cell {
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.stop-dot {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--car-color);
+  box-shadow: 0 0 6px var(--car-color);
+}
+
+.car {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  right: 14px; /* chừa chỗ cho chấm tầng đã chọn */
+  height: calc(var(--floor-h) - 8px);
+  transform: translateY(calc(var(--car-offset) * var(--floor-h)));
+  transition: transform var(--step) linear;
+  border: 2px solid var(--car-color);
+  border-radius: 4px;
+  background: var(--car-inside);
+  overflow: hidden;
+}
+
+.car-label {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--car-color);
+  color: #fff;
+  font: 700 0.65rem/1 var(--mono);
+}
+
+.car-arrow {
+  font-size: 0.55rem;
+}
+
+.car-door {
+  position: absolute;
+  top: 14px;
+  bottom: 0;
+  width: 50%;
+  background: var(--car-body);
+  transition: transform 0.4s ease;
+}
+
+.car-door-left {
+  left: 0;
+  border-right: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+}
+
+.car-door-right {
+  right: 0;
+}
+
+.car.is-open .car-door-left { transform: translateX(-85%); }
+.car.is-open .car-door-right { transform: translateX(85%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .car,
+  .car-door,
+  .hall-btn {
+    transition: none;
+  }
+}
+
+/* ---- Thẻ trạng thái ---- */
 
 .status-list {
   list-style: none;
@@ -169,93 +337,7 @@ main {
 .status-card dt { color: var(--text-muted); }
 .status-card dd { margin: 0; font-family: var(--mono); }
 
-.waiting {
-  color: var(--text-muted);
-}
-
-.stage-loading {
-  margin: 0;
-  padding: 16px;
-  color: #8b93a5;
-}
-
-.sidebar {
-  display: grid;
-  gap: 16px;
-  align-content: start;
-}
-
-.hall-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-.hall-panel h2 {
-  margin: 0 0 8px;
-  font-size: 0.9rem;
-  color: var(--text-h);
-}
-
-.hall-rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 12px;
-}
-
-.hall-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.hall-floor {
-  width: 2ch;
-  text-align: right;
-  font: 600 0.9rem var(--mono);
-  color: var(--text-muted);
-}
-
-.hall-btn,
-.hall-btn-spacer {
-  width: 36px;
-  height: 32px;
-}
-
-.hall-btn {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.hall-btn:hover:not(:disabled) {
-  border-color: var(--lantern);
-  color: var(--text-h);
-}
-
-.hall-btn:focus-visible {
-  outline: 2px solid var(--lantern);
-  outline-offset: 2px;
-}
-
-.hall-btn.is-on {
-  background: var(--lantern);
-  border-color: var(--lantern);
-  color: #1a1204;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--lantern) 60%, transparent);
-}
-
-.hall-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
+/* ---- Toast ---- */
 
 .toast-region {
   position: fixed;

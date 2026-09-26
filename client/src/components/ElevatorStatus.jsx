@@ -7,7 +7,7 @@ const STATE_LABEL = {
   [ElevatorStateName.DOOR_OPEN]: 'Doors open',
 };
 
-// Bản chữ của cảnh 3D: đọc nhanh số liệu, và cho trình đọc màn hình
+// Thẻ trạng thái từng thang: số liệu dạng chữ, đọc được bằng trình đọc màn hình
 export function ElevatorStatus({ elevators }) {
   return (
     <ul className="status-list">

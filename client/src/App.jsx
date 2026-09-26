@@ -1,15 +1,9 @@
-import { lazy, Suspense, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useBuilding } from './hooks/useBuilding.js';
 import { useToast } from './hooks/useToast.js';
+import { Building } from './components/Building.jsx';
 import { ElevatorStatus } from './components/ElevatorStatus.jsx';
-import { HallPanel } from './components/HallPanel.jsx';
-import { SceneErrorBoundary } from './components/SceneErrorBoundary.jsx';
 import { Toast } from './components/Toast.jsx';
-
-// three.js khá nặng -> tải riêng, khung trang hiện trước
-const BuildingScene = lazy(() =>
-  import('./components/BuildingScene.jsx').then((m) => ({ default: m.BuildingScene })),
-);
 
 function App() {
   const { snapshot, connected, send } = useBuilding();
@@ -32,22 +26,11 @@ function App() {
 
       {snapshot ? (
         <div className="layout">
-          <section className="stage">
-            <SceneErrorBoundary>
-              <Suspense fallback={<p className="stage-loading">Loading 3D view…</p>}>
-                <BuildingScene snapshot={snapshot} onCall={callElevator} disabled={!connected} />
-              </Suspense>
-            </SceneErrorBoundary>
-            <p className="stage-hint">Click ▲▼ to call · drag to rotate · scroll to zoom</p>
+          <section className="panel" aria-label="Building">
+            <Building snapshot={snapshot} onCall={callElevator} disabled={!connected} />
           </section>
-          <aside className="sidebar">
+          <aside>
             <ElevatorStatus elevators={snapshot.elevators} />
-            <HallPanel
-              floorCount={snapshot.floorCount}
-              pendingPickups={snapshot.pendingPickups}
-              onCall={callElevator}
-              disabled={!connected}
-            />
           </aside>
         </div>
       ) : (
