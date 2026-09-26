@@ -59,3 +59,13 @@ test('start() tự gọi step() đều đặn, stop() thì dừng', (t) => {
   t.mock.timers.tick(3000);
   assert.equal(updates, 3);
 });
+
+test('snapshot cho biết thuật toán điều phối và tầng mỗi thang đang đi đón', () => {
+  const b = new Building();
+  b.requestPickup(5, 'UP');
+  const snap = b.getSnapshot();
+
+  assert.equal(snap.strategyName, b.strategyName);
+  const assigned = snap.elevators.filter((e) => e.pickups.UP.includes(5));
+  assert.equal(assigned.length, 1);
+});

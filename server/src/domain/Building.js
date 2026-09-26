@@ -106,12 +106,14 @@ export class Building extends EventEmitter {
 
     return {
       floorCount: this.#floorCount,
+      strategyName: this.strategyName,
       elevators: this.#elevators.map((e) => ({
         id: e.id,
         currentFloor: e.currentFloor,
         direction: e.direction,
         state: e.state,
         stops: e.stops,
+        pickups: e.pickups,
       })),
       pendingPickups,
     };
