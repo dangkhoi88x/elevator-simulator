@@ -1,87 +1,104 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Building } from '../src/domain/Building.js';
+import { Building } from '../src/models/Building.js';
 
-function run(b, n) {
-  for (let i = 0; i < n; i++) b.step();
+function run(building, n) {
+  for (let i = 0; i < n; i++) building.step();
 }
 
-test('tòa nhà mặc định có 10 tầng, 3 thang A B C đứng ở tầng 1', () => {
-  const b = new Building();
-  const snap = b.getSnapshot();
+// Thang nào đang được giao đón người ở tầng `floor` đi hướng `direction`?
+function assignedTo(building, floor, direction) {
+  const key = direction === 'UP' ? 'upCalls' : 'downCalls';
+  return building.getState().elevators.find((e) => e[key].includes(floor))?.id;
+}
 
-  assert.equal(snap.floorCount, 10);
-  assert.deepEqual(snap.elevators.map((e) => e.id), ['A', 'B', 'C']);
-  assert.ok(snap.elevators.every((e) => e.currentFloor === 1));
+test('[ĐỀ BÀI] toà nhà 10 tầng, 3 thang A B C, bắt đầu ở tầng 1', () => {
+  const state = new Building(10, 3).getState();
+
+  assert.equal(state.floorCount, 10);
+  assert.deepEqual(state.elevators.map((e) => e.id), ['A', 'B', 'C']);
+  assert.ok(state.elevators.every((e) => e.floor === 1));
 });
 
-test('từ chối tầng và hướng không hợp lệ', () => {
+test('từ chối lệnh sai', () => {
   const b = new Building();
-  assert.throws(() => b.requestPickup(0, 'UP'));
-  assert.throws(() => b.requestPickup(11, 'DOWN'));
-  assert.throws(() => b.requestPickup(10, 'UP'));   // tầng trên cùng không có nút lên
-  assert.throws(() => b.requestPickup(1, 'DOWN'));  // tầng 1 không có nút xuống
-  assert.throws(() => b.selectFloor('Z', 3));       // không có thang Z
+  assert.throws(() => b.callElevator(0, 'UP'), /Invalid floor/);
+  assert.throws(() => b.callElevator(11, 'DOWN'), /Invalid floor/);
+  assert.throws(() => b.callElevator(10, 'UP'), /top floor/);    // tầng trên cùng không có nút lên
+  assert.throws(() => b.callElevator(1, 'DOWN'), /ground floor/); // tầng 1 không có nút xuống
+  assert.throws(() => b.callElevator(5, 'LEFT'), /Invalid direction/);
+  assert.throws(() => b.selectFloor('Z', 3), /Unknown elevator/);
 });
 
-test('bấm gọi thang: đèn nút sáng, thang tới nơi thì đèn tắt', () => {
+test('bấm gọi thang: nút sáng, thang tới nơi thì nút tắt', () => {
   const b = new Building();
-  b.requestPickup(5, 'UP');
-  assert.deepEqual(b.getSnapshot().pendingPickups, { UP: [5], DOWN: [] });
+  b.callElevator(5, 'UP');
+  assert.deepEqual(b.getState().upCalls, [5]);
 
   run(b, 4); // từ tầng 1 lên tầng 5
-  const snap = b.getSnapshot();
-  assert.deepEqual(snap.pendingPickups, { UP: [], DOWN: [] });
-  assert.ok(snap.elevators.some((e) => e.currentFloor === 5 && e.state === 'DOOR_OPEN'));
+  const state = b.getState();
+  assert.deepEqual(state.upCalls, []);
+  assert.ok(state.elevators.some((e) => e.floor === 5 && e.state === 'DOOR_OPEN'));
 });
 
-test('bấm cùng một nút nhiều lần chỉ gọi một thang', () => {
+test('bấm một nút nhiều lần chỉ gọi một thang', () => {
   const b = new Building();
-  b.requestPickup(5, 'UP');
-  b.requestPickup(5, 'UP');
+  b.callElevator(5, 'UP');
+  b.callElevator(5, 'UP');
   run(b, 1);
 
-  const moving = b.getSnapshot().elevators.filter((e) => e.state === 'MOVING');
+  const moving = b.getState().elevators.filter((e) => e.state === 'MOVING');
   assert.equal(moving.length, 1);
 });
 
-test('start() tự gọi step() đều đặn, stop() thì dừng', (t) => {
-  t.mock.timers.enable({ apis: ['setInterval'] });
+// ===== Chọn thang =====
+
+test('chọn thang rảnh thay vì thang đang đi ngược đường', () => {
   const b = new Building();
-  let updates = 0;
-  b.on('update', () => updates++);
+  b.selectFloor('A', 10);
+  run(b, 3); // A đang lên, ở tầng 4. B và C rảnh ở tầng 1
 
-  b.start(1000);
-  t.mock.timers.tick(3000);
-  assert.equal(updates, 3);
-
-  b.stop();
-  t.mock.timers.tick(3000);
-  assert.equal(updates, 3);
+  b.callElevator(3, 'UP'); // A đã đi qua tầng 3 -> phải lên 10 rồi vòng lại
+  assert.equal(assignedTo(b, 3, 'UP'), 'B');
 });
 
-test('snapshot cho biết thuật toán điều phối và tầng mỗi thang đang đi đón', () => {
+test('chọn thang tiện đường (cùng hướng, sắp đi qua) thay vì thang rảnh ở xa hơn', () => {
   const b = new Building();
-  b.requestPickup(5, 'UP');
-  const snap = b.getSnapshot();
+  b.selectFloor('A', 9);
+  run(b, 1); // A đang lên, ở tầng 2. B và C rảnh ở tầng 1
 
-  assert.equal(snap.strategyName, b.strategyName);
-  const assigned = snap.elevators.filter((e) => e.pickups.UP.includes(5));
-  assert.equal(assigned.length, 1);
+  b.callElevator(5, 'UP'); // A cách 3 tầng và tiện đường, B cách 4 tầng
+  assert.equal(assignedTo(b, 5, 'UP'), 'A');
 });
 
-test('thang đang mở cửa ở tầng gọi thì giữ cửa cho khách, không điều thang khác tới', () => {
+test('[ĐỀ BÀI] A đang lên tầng 10, người ở tầng 5 bấm XUỐNG -> A không dừng, thang khác tới đón', () => {
+  const b = new Building();
+  b.selectFloor('A', 10);
+  run(b, 2); // A đang lên, ở tầng 3
+
+  b.callElevator(5, 'DOWN');
+  assert.notEqual(assignedTo(b, 5, 'DOWN'), 'A');
+
+  let aStoppedAt5 = false;
+  for (let i = 0; i < 7; i++) {
+    b.step();
+    const a = b.getState().elevators[0];
+    if (a.floor === 5 && a.state === 'DOOR_OPEN') aStoppedAt5 = true;
+  }
+  assert.equal(aStoppedAt5, false);
+});
+
+test('thang đang mở cửa ở tầng gọi -> giữ cửa cho khách, không điều thang khác tới', () => {
   const b = new Building();
   b.selectFloor('A', 5);
   b.selectFloor('B', 4);
   run(b, 6); // A đang mở cửa ở 5 (sắp đóng), B đã đóng cửa, rảnh ở tầng 4
 
-  b.requestPickup(5, 'UP');
+  b.callElevator(5, 'UP');
   b.step();
 
-  const snap = b.getSnapshot();
-  const [a, bCar] = snap.elevators;
-  assert.equal(a.state, 'DOOR_OPEN');                     // A giữ cửa
-  assert.deepEqual(bCar.pickups, { UP: [], DOWN: [] });   // B không bị điều tới
-  assert.deepEqual(snap.pendingPickups, { UP: [], DOWN: [] });
+  const state = b.getState();
+  assert.equal(state.elevators[0].state, 'DOOR_OPEN'); // A giữ cửa
+  assert.deepEqual(state.elevators[1].upCalls, []);    // B không bị điều tới
+  assert.deepEqual(state.upCalls, []);
 });

@@ -1,11 +1,5 @@
-// Khớp với server/src/domain/Direction.js
-export const Direction = Object.freeze({
-  UP: 'UP',
-  DOWN: 'DOWN',
-});
+// Chiều cao một tầng trên màn hình (px)
+export const FLOOR_HEIGHT = 50;
 
-export const ElevatorStateName = Object.freeze({
-  WAITING: 'WAITING',
-  MOVING: 'MOVING',
-  DOOR_OPEN: 'DOOR_OPEN',
-});
+// Màu riêng cho từng thang: A xanh dương, B cam, C xanh lá
+export const COLORS = ['#3b82f6', '#f97316', '#10b981'];

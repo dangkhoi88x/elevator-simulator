@@ -1,41 +1,41 @@
-import { HallButtons } from './HallButtons.jsx';
-import { Shaft } from './Shaft.jsx';
-import { elevatorColor } from '../theme.js';
+import { FLOOR_HEIGHT, COLORS } from '../constants.js';
+import { FloorButtons } from './FloorButtons.jsx';
+import { ElevatorShaft } from './ElevatorShaft.jsx';
 
-// Mặt cắt toà nhà dạng lưới: mỗi hàng là một tầng, cột trái là số tầng + nút gọi, còn lại là các trục thang
-export function Building({ snapshot, onCall, disabled }) {
-  const { floorCount, elevators, pendingPickups } = snapshot;
-  const floors = Array.from({ length: floorCount }, (_, i) => floorCount - i);
+// Hình toà nhà: cột trái là các tầng + nút gọi thang, bên phải là các trục thang
+export function Building({ building, onCall, disabled }) {
+  // Tầng cao nhất vẽ ở trên cùng: [10, 9, ..., 1]
+  const floors = [];
+  for (let floor = building.floorCount; floor >= 1; floor--) {
+    floors.push(floor);
+  }
 
   return (
-    <div className="building-scroll">
-      <div
-        className="building"
-        style={{ '--floors': floorCount, '--shafts': elevators.length }}
-      >
-        {floors.map((floor, row) => (
-          <div key={floor} className="lobby" style={{ gridRow: row + 1 }}>
+    <div className="building">
+      <div className="floors">
+        {floors.map((floor) => (
+          <div key={floor} className="floor" style={{ height: FLOOR_HEIGHT }}>
             <span className="floor-number">{floor}</span>
-            <HallButtons
+            <FloorButtons
               floor={floor}
-              floorCount={floorCount}
-              pendingPickups={pendingPickups}
+              floorCount={building.floorCount}
+              upCalls={building.upCalls}
+              downCalls={building.downCalls}
               onCall={onCall}
               disabled={disabled}
             />
           </div>
         ))}
-
-        {elevators.map((elevator, i) => (
-          <Shaft
-            key={elevator.id}
-            elevator={elevator}
-            floorCount={floorCount}
-            color={elevatorColor(i)}
-            column={i + 2}
-          />
-        ))}
       </div>
+
+      {building.elevators.map((elevator, index) => (
+        <ElevatorShaft
+          key={elevator.id}
+          elevator={elevator}
+          floorCount={building.floorCount}
+          color={COLORS[index % COLORS.length]}
+        />
+      ))}
     </div>
   );
 }

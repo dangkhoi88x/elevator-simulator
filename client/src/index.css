@@ -1,442 +1,229 @@
-:root {
-  --text: #3f3a47;
-  --text-muted: #6b6375;
-  --text-h: #08060d;
-  --bg: #f6f7f9;
-  --surface: #fff;
-  --border: #e3e4e8;
-  --shaft-bg: #eceef3;
-  --car-body: #d9dde5;
-  --car-inside: #fff4d6;
-  --ok: #1f9d55;
-  --bad: #d64545;
-  --lantern: #ffb020;
-
-  --floor-h: 52px;
-  --shaft-w: clamp(56px, 14vw, 88px);
-  --step: 1s; /* khớp STEP_INTERVAL_MS của server: 1 tầng mỗi nhịp */
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 16px/1.5 var(--sans);
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  -webkit-font-smoothing: antialiased;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #c4c7ce;
-    --text-muted: #8b909c;
-    --text-h: #f3f4f6;
-    --bg: #101218;
-    --surface: #181b23;
-    --border: #2a2e39;
-    --shaft-bg: #1f232d;
-    --car-body: #3a404d;
-    --car-inside: #5a4a26;
-    --ok: #3ccf7e;
-    --bad: #ff6b6b;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  font-family: system-ui, sans-serif;
+  background: #f3f4f6;
+  color: #1f2937;
 }
 
 main {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 20px 16px;
-}
-
-/* ---- Header ---- */
-
-.app-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  margin-bottom: 16px;
-}
-
-.app-header h1 {
-  color: var(--text-h);
-  font-size: 1.5rem;
-  margin: 0;
-}
-
-.conn {
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.conn::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.conn-on { color: var(--ok); }
-.conn-off { color: var(--bad); }
-
-.strategy {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.waiting {
-  color: var(--text-muted);
-}
-
-/* ---- Layout ---- */
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 16px;
-  align-items: start;
-}
-
-@media (max-width: 760px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
-}
-
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
   padding: 16px;
 }
 
-/* ---- Toà nhà ---- */
-
-.building-scroll {
-  overflow-x: auto; /* nhiều thang quá thì cuộn ngang trong khung, không vỡ trang */
-}
-
-.building {
-  display: grid;
-  grid-template-columns: auto repeat(var(--shafts), var(--shaft-w));
-  grid-template-rows: repeat(var(--floors), var(--floor-h));
-  column-gap: 10px;
-  width: max-content;
-  margin: 0 auto;
-}
-
-.lobby {
-  grid-column: 1;
+header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-right: 6px;
-  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.online {
+  color: #16a34a;
+}
+
+.offline {
+  color: #dc2626;
+}
+
+.waiting {
+  padding: 16px;
+}
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ===== Toà nhà ===== */
+
+.building {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.floor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .floor-number {
-  width: 2ch;
+  width: 24px;
   text-align: right;
-  font: 600 0.95rem var(--mono);
-  color: var(--text-muted);
+  font-weight: bold;
+  color: #6b7280;
 }
 
-.hall-buttons {
+.floor-buttons {
   display: flex;
   gap: 4px;
+  width: 72px;
 }
 
-.hall-btn,
-.hall-btn-spacer {
+.call-button {
   width: 34px;
   height: 34px;
-}
-
-.hall-btn {
-  border: 1px solid var(--border);
+  border: 1px solid #d1d5db;
   border-radius: 50%;
-  background: var(--bg);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  background: white;
 }
 
-.hall-btn:hover:not(:disabled) {
-  border-color: var(--lantern);
-  color: var(--text-h);
+/* Nút ▼ luôn nằm bên phải, kể cả ở tầng trên cùng (không có nút ▲) */
+.call-button.down {
+  margin-left: auto;
 }
 
-.hall-btn:focus-visible {
-  outline: 2px solid var(--lantern);
-  outline-offset: 2px;
+/* Nút đang sáng: có người chờ */
+.call-button.lit {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: white;
 }
-
-.hall-btn.is-on {
-  background: var(--lantern);
-  border-color: var(--lantern);
-  color: #1a1204;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--lantern) 60%, transparent);
-}
-
-.hall-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-/* ---- Trục thang + cabin ---- */
 
 .shaft {
-  grid-row: 1 / -1;
   position: relative;
-  display: grid;
-  grid-template-rows: repeat(var(--floors), var(--floor-h));
-  background: var(--shaft-bg);
-  border-radius: 6px;
-  overflow: hidden;
+  width: 60px;
+  background: #e5e7eb;
+  border-radius: 4px;
 }
 
-.shaft-cell {
-  border-bottom: 1px solid var(--border);
-  position: relative;
-}
-
-.stop-dot {
-  position: absolute;
-  top: 50%;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  margin-top: -4px;
-  border-radius: 50%;
-  background: var(--car-color);
-  box-shadow: 0 0 6px var(--car-color);
-}
-
+/* Cabin: đổi `bottom` là tự trượt tới tầng mới trong 1 giây (= 1 nhịp của server) */
 .car {
   position: absolute;
-  top: 4px;
-  left: 6px;
-  right: 14px; /* chừa chỗ cho chấm tầng đã chọn */
-  height: calc(var(--floor-h) - 8px);
-  transform: translateY(calc(var(--car-offset) * var(--floor-h)));
-  transition: transform var(--step) linear;
-  border: 2px solid var(--car-color);
-  border-radius: 4px;
-  background: var(--car-inside);
+  left: 4px;
+  right: 4px;
   overflow: hidden;
+  border: 2px solid;
+  border-radius: 4px;
+  background: #fef3c7;
+  transition: bottom 1s linear;
 }
 
 .car-label {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 1;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  background: var(--car-color);
-  color: #fff;
-  font: 700 0.65rem/1 var(--mono);
+  height: 16px;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
 }
 
-.car-arrow {
-  font-size: 0.55rem;
-}
-
-.car-door {
+/* Hai cánh cửa: đóng thì mỗi cánh rộng 50%, mở thì co lại sát hai bên */
+.door {
   position: absolute;
-  top: 14px;
+  top: 16px;
   bottom: 0;
   width: 50%;
-  background: var(--car-body);
-  transition: transform 0.4s ease;
+  background: #cbd5e1;
+  transition: width 0.4s;
 }
 
-.car-door-left {
+.door.left {
   left: 0;
-  border-right: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+  border-right: 1px solid #94a3b8;
 }
 
-.car-door-right {
+.door.right {
   right: 0;
 }
 
-.car.is-open .car-door-left { transform: translateX(-85%); }
-.car.is-open .car-door-right { transform: translateX(85%); }
-
-@media (prefers-reduced-motion: reduce) {
-  .car,
-  .car-door,
-  .hall-btn {
-    transition: none;
-  }
+.car.open .door {
+  width: 10%;
 }
 
-/* ---- Thẻ trạng thái ---- */
+/* ===== Bảng điều khiển từng thang ===== */
 
-.status-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.status-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--car-color);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-.status-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.status-id {
-  font-weight: 700;
-  color: var(--car-color);
-}
-
-.status-floor {
-  font: 600 1.25rem var(--mono);
-  color: var(--text-h);
-}
-
-.status-state {
-  margin-left: auto;
-  font-size: 0.75rem;
-  padding: 1px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-}
-
-.state-moving { color: var(--car-color); border-color: var(--car-color); }
-.state-door_open { color: var(--ok); border-color: var(--ok); }
-
-.status-card dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px 10px;
-  margin: 8px 0 0;
-  font-size: 0.85rem;
-}
-
-.status-card dt { color: var(--text-muted); }
-.status-card dd { margin: 0; font-family: var(--mono); }
-
-/* ---- Bảng nút trong cabin ---- */
-
-.car-panel {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border);
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.car-floors {
+.panels {
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.car-doors {
-  display: grid;
-  gap: 6px;
+.panel {
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left: 5px solid;
+  border-radius: 8px;
 }
 
-.car-btn,
-.door-btn {
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.state {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.floor-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.floor-button {
   height: 32px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
 }
 
-.car-btn {
-  border-radius: 50%;
-  aspect-ratio: 1;
-  justify-self: center;
-  font: 600 0.8rem var(--mono);
+.door-buttons {
+  display: flex;
+  gap: 6px;
 }
 
-.door-btn {
-  width: 44px;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  letter-spacing: -2px;
+.door-buttons button {
+  flex: 1;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
 }
 
-.car-btn:hover:not(:disabled),
-.door-btn:hover:not(:disabled) {
-  border-color: var(--car-color);
-  color: var(--text-h);
-}
+/* ===== Thông báo lỗi ===== */
 
-.car-btn:focus-visible,
-.door-btn:focus-visible {
-  outline: 2px solid var(--car-color);
-  outline-offset: 2px;
-}
-
-.door-btn:active:not(:disabled) {
-  background: color-mix(in srgb, var(--car-color) 20%, var(--bg));
-}
-
-.car-btn.is-on {
-  background: var(--car-color);
-  border-color: var(--car-color);
-  color: #fff;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--car-color) 60%, transparent);
-}
-
-.car-btn:disabled,
-.door-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .car-btn,
-  .door-btn {
-    transition: none;
-  }
-}
-
-/* ---- Toast ---- */
-
-.toast-region {
+.error {
   position: fixed;
+  bottom: 20px;
   left: 50%;
-  bottom: 24px;
   transform: translateX(-50%);
-  width: max-content;
-  max-width: calc(100vw - 32px);
-  z-index: 10;
-}
-
-.toast {
   padding: 10px 16px;
-  border-radius: 8px;
-  background: var(--bad);
-  color: #fff;
-  font-size: 0.9rem;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  background: #dc2626;
+  color: white;
 }

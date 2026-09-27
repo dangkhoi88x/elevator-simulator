@@ -1,171 +1,157 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Elevator } from '../src/domain/Elevator.js';
-test('đi lên tới tầng cần ghé', () => {
-  const e = new Elevator('A', 1);
-  e.addStop(4);
+import { Elevator } from '../src/models/Elevator.js';
 
-  e.step();
-  e.step();
-  e.step();
-
-  assert.equal(e.currentFloor, 4);
-  assert.deepEqual(e.stops, []);
-});
-test('đi xuống tới tầng cần ghé', () => {
-  const e = new Elevator('A', 8);
-  e.addStop(5);
-
-  e.step();
-  e.step();
-  e.step();
-
-  assert.equal(e.currentFloor, 5);
-});
-test('tới nơi thì hô arrived đúng một lần', () => {
-  const e = new Elevator('A', 1);
-  const heard = [];
-  e.on('arrived', (data) => heard.push(data));
-
-  e.addStop(3);
-  for (let i = 0; i < 5; i++) e.step();
-
-  assert.deepEqual(heard, [{ elevatorId: 'A', floor: 3, direction: 'UP' }]);
-});
-test('nhiều tầng cần ghé thì dừng theo thứ tự đi qua', () => {
-  const e = new Elevator('A', 1);
-  const floors = [];
-  e.on('arrived', (data) => floors.push(data.floor));
-
-  e.addStop(4);
-  e.addStop(2);
-  for (let i = 0; i < 20; i++) e.step(); // dư nhịp vì phải chờ cửa ở tầng 2
-
-  assert.deepEqual(floors, [2, 4]);
-});
-
-test('tới nơi thì mở cửa và hô doorOpened', () => {
-  const e = new Elevator('A', 1);
-  const events = [];
-  e.on('doorOpened', (d) => events.push(d.floor));
-
-  e.addStop(2);
-  e.step();
-
-  assert.equal(e.state, 'DOOR_OPEN');
-  assert.deepEqual(events, [2]);
-});
-
-test('cửa tự đóng sau doorHoldSteps bước', () => {
-  const e = new Elevator('A', 1, { doorHoldSteps: 3 });
-  e.addStop(2);
-  e.step(); // tới tầng 2, mở cửa
-
-  e.step();
-  e.step();
-  assert.equal(e.state, 'DOOR_OPEN'); // mới qua 2 bước, vẫn mở
-
-  e.step();
-  assert.equal(e.state, 'WAITING'); // bước thứ 3, đóng
-});
-
-test('nút mở giữ cửa lâu thêm, nút đóng thì đóng ngay', () => {
-  const e = new Elevator('A', 1, { doorHoldSteps: 3 });
-  e.addStop(2);
-  e.step(); // mở cửa
-
-  e.step();
-  e.step(); // sắp hết giờ
-  e.pressOpen(); // đếm lại từ đầu
-  e.step();
-  e.step();
-  assert.equal(e.state, 'DOOR_OPEN');
-
-  e.pressClose();
-  assert.equal(e.state, 'WAITING');
-});
-
-test('đang chạy thì bấm mở/đóng không có tác dụng', () => {
-  const e = new Elevator('A', 1);
-  e.addStop(5);
-  e.step(); // đang ở tầng 2, đang chạy
-
-  e.pressOpen();
-  assert.equal(e.state, 'MOVING');
-  e.pressClose();
-  assert.equal(e.state, 'MOVING');
-});
-function run(e, n) {
-  for (let i = 0; i < n; i++) e.step();
+// Chạy n nhịp
+function run(elevator, n) {
+  for (let i = 0; i < n; i++) elevator.step();
 }
 
-test('đang đi lên, người ở tầng 5 bấm UP thì thang dừng đón', () => {
+// Chạy n nhịp, ghi lại mỗi lần thang dừng mở cửa: "tầng-hướng"
+function runAndRecordStops(elevator, n) {
+  const stops = [];
+  for (let i = 0; i < n; i++) {
+    const wasOpen = elevator.getInfo().state === 'DOOR_OPEN';
+    elevator.step();
+    const info = elevator.getInfo();
+    if (!wasOpen && info.state === 'DOOR_OPEN') {
+      stops.push(`${info.floor}-${info.direction}`);
+    }
+  }
+  return stops;
+}
+
+// ===== Di chuyển =====
+
+test('đi lên tới tầng khách chọn rồi mở cửa', () => {
   const e = new Elevator('A', 1);
-  const floors = [];
-  e.on('arrived', (d) => floors.push(d.floor));
+  e.selectFloor(4);
+  run(e, 3); // 1 -> 2 -> 3 -> 4
 
-  e.addStop(10);
-  e.step();                    // đang ở tầng 2, đi lên
-  e.requestPickup(5, 'UP');
-  run(e, 30);
-
-  assert.deepEqual(floors, [5, 10]);
+  const info = e.getInfo();
+  assert.equal(info.floor, 4);
+  assert.equal(info.state, 'DOOR_OPEN');
+  assert.deepEqual(info.stops, []);
 });
 
-test('đang đi lên, người ở tầng 5 bấm DOWN thì thang KHÔNG dừng, lên 10 rồi quay xuống đón', () => {
-  const e = new Elevator('A', 1);
-  const heard = [];
-  e.on('arrived', (d) => heard.push(`${d.floor}-${d.direction}`));
+test('đi xuống tới tầng khách chọn', () => {
+  const e = new Elevator('A', 8);
+  e.selectFloor(5);
+  run(e, 3); // 8 -> 7 -> 6 -> 5
 
-  e.addStop(10);
+  assert.equal(e.floor, 5);
+});
+
+test('nhiều tầng thì dừng theo thứ tự đi qua', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(4);
+  e.selectFloor(2);
+
+  assert.deepEqual(runAndRecordStops(e, 20), ['2-UP', '4-UP']);
+});
+
+// ===== Cửa =====
+
+test('cửa tự đóng sau 3 nhịp', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(2);
+  e.step(); // tới tầng 2, mở cửa
+
+  run(e, 2);
+  assert.equal(e.getInfo().state, 'DOOR_OPEN'); // mới qua 2 nhịp, vẫn mở
+
   e.step();
-  e.requestPickup(5, 'DOWN');
-  run(e, 30);
-
-  assert.deepEqual(heard, ['10-UP', '5-DOWN']);
+  assert.equal(e.getInfo().state, 'WAITING'); // nhịp thứ 3, đóng
 });
 
-test('chỉ có người bấm DOWN ở tầng 7: thang lên tới 7 rồi đổi hướng thành DOWN', () => {
+test('[ĐỀ BÀI] bấm mở thì giữ cửa mở, bấm đóng thì đóng ngay', () => {
   const e = new Elevator('A', 1);
-  e.requestPickup(7, 'DOWN');
+  e.selectFloor(2);
+  e.step(); // mở cửa
+  run(e, 2); // sắp hết giờ
+
+  e.pressOpen(); // giữ cửa: đếm lại từ đầu
+  run(e, 2);
+  assert.equal(e.getInfo().state, 'DOOR_OPEN');
+
+  e.pressClose();
+  assert.equal(e.getInfo().state, 'WAITING');
+});
+
+test('đang chạy thì bấm mở / đóng không có tác dụng', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(5);
+  e.step(); // đang chạy, ở tầng 2
+
+  e.pressOpen();
+  assert.equal(e.getInfo().state, 'MOVING');
+  e.pressClose();
+  assert.equal(e.getInfo().state, 'MOVING');
+});
+
+// ===== Đón khách theo hướng =====
+
+test('[ĐỀ BÀI] thang đang lên tầng 10, người ở tầng 5 bấm LÊN -> thang dừng đón ở 5', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(10);
+  e.step(); // đang đi lên, ở tầng 2
+  e.addCall(5, 'UP');
+
+  assert.deepEqual(runAndRecordStops(e, 30), ['5-UP', '10-UP']);
+});
+
+test('[ĐỀ BÀI] thang đang lên tầng 10, người ở tầng 5 bấm XUỐNG -> không dừng, lên 10 rồi quay xuống đón', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(10);
+  e.step();
+  e.addCall(5, 'DOWN');
+
+  assert.deepEqual(runAndRecordStops(e, 30), ['10-UP', '5-DOWN']);
+});
+
+test('chỉ có người ở tầng 7 bấm XUỐNG: thang lên 7 rồi đổi hướng thành XUỐNG', () => {
+  const e = new Elevator('A', 1);
+  e.addCall(7, 'DOWN');
   run(e, 6);
 
-  assert.equal(e.currentFloor, 7);
-  assert.equal(e.state, 'DOOR_OPEN');
-  assert.equal(e.direction, 'DOWN');
+  const info = e.getInfo();
+  assert.equal(info.floor, 7);
+  assert.equal(info.state, 'DOOR_OPEN');
+  assert.equal(info.direction, 'DOWN');
 });
 
-test('cửa đang mở mà có người bấm cùng tầng cùng hướng thì chỉ giữ cửa, không thêm việc', () => {
-  const e = new Elevator('A', 1, { doorHoldSteps: 3 });
-  e.addStop(3);
-  run(e, 2);                   // tới tầng 3, cửa mở
-  run(e, 2);                   // sắp đóng
+// ===== Bấm gọi khi thang đang mở cửa ngay tầng đó =====
 
-  e.requestPickup(3, 'UP');
-  run(e, 2);
-  assert.equal(e.state, 'DOOR_OPEN');
-  assert.deepEqual(e.pickups, { UP: [], DOWN: [] });
-});
-
-test('cửa đang mở, thang không còn việc: người bấm ngược hướng thì thang đổi hướng và giữ cửa luôn', () => {
-  const e = new Elevator('A', 1, { doorHoldSteps: 3 });
-  e.addStop(3);
-  run(e, 2);                   // tới tầng 3 (đang đi lên), cửa mở
-
-  e.requestPickup(3, 'DOWN');
-  assert.equal(e.direction, 'DOWN');
-  assert.deepEqual(e.pickups, { UP: [], DOWN: [] });
-  run(e, 2);
-  assert.equal(e.state, 'DOOR_OPEN'); // không đóng rồi mở lại
-});
-
-test('cửa đang mở nhưng thang còn việc phía trước: người bấm ngược hướng phải chờ lượt quay về', () => {
+test('cửa đang mở, người bấm cùng hướng -> chỉ giữ cửa, không thêm việc', () => {
   const e = new Elevator('A', 1);
-  e.addStop(3);
-  e.addStop(8);
-  run(e, 2);                   // dừng ở 3, vẫn còn tầng 8 phía trên
+  e.selectFloor(3);
+  run(e, 4); // tới tầng 3, cửa mở, sắp đóng
 
-  e.requestPickup(3, 'DOWN');
+  e.addCall(3, 'UP');
+  run(e, 2);
+  assert.equal(e.getInfo().state, 'DOOR_OPEN');
+  assert.deepEqual(e.getInfo().upCalls, []);
+});
+
+test('cửa đang mở, thang hết việc, người bấm ngược hướng -> thang đổi hướng và giữ cửa', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(3);
+  run(e, 2); // tới tầng 3 (đang đi lên), cửa mở
+
+  e.addCall(3, 'DOWN');
+  assert.equal(e.direction, 'DOWN');
+  assert.deepEqual(e.getInfo().downCalls, []);
+  run(e, 2);
+  assert.equal(e.getInfo().state, 'DOOR_OPEN'); // không đóng rồi mở lại
+});
+
+test('cửa đang mở nhưng thang còn việc phía trước -> người bấm ngược hướng phải chờ lượt quay về', () => {
+  const e = new Elevator('A', 1);
+  e.selectFloor(3);
+  e.selectFloor(8);
+  run(e, 2); // dừng ở 3, còn tầng 8 phía trên
+
+  e.addCall(3, 'DOWN');
   assert.equal(e.direction, 'UP');
-  assert.deepEqual(e.pickups.DOWN, [3]);
+  assert.deepEqual(e.getInfo().downCalls, [3]);
 });

@@ -2,17 +2,15 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { io as connect } from 'socket.io-client';
-import { Building } from '../src/domain/Building.js';
-import { createApp } from '../src/app.js';
+import { Building } from '../src/models/Building.js';
+import { createServer } from '../src/server.js';
 
-let building;
 let server;
 let client;
 let firstState;
 
 before(async () => {
-  building = new Building(); // không start(): test tự gọi step()
-  server = createApp({ building, clientOrigin: '*' });
+  server = createServer(new Building(), '*'); // không chạy nhịp tự động: test tự điều khiển
   server.httpServer.listen(0); // cổng 0 = để hệ điều hành chọn cổng trống
   await once(server.httpServer, 'listening');
 
@@ -26,27 +24,27 @@ after(() => {
   server.io.close();
 });
 
-test('vừa kết nối là nhận được trạng thái tòa nhà', async () => {
-  const [snapshot] = await firstState;
-  assert.equal(snapshot.elevators.length, 3);
+test('vừa kết nối là nhận được trạng thái toà nhà', async () => {
+  const [state] = await firstState;
+  assert.equal(state.elevators.length, 3);
 });
 
-test('gửi lệnh gọi thang: server trả ok và phát trạng thái mới có đèn sáng', async () => {
+test('gửi lệnh gọi thang: server trả ok và gửi trạng thái mới có nút sáng', async () => {
   const nextState = once(client, 'state');
-  const reply = await client.emitWithAck('pickup', { floor: 5, direction: 'UP' });
+  const reply = await client.emitWithAck('callElevator', { floor: 5, direction: 'UP' });
   assert.deepEqual(reply, { ok: true });
 
-  const [snapshot] = await nextState;
-  assert.deepEqual(snapshot.pendingPickups.UP, [5]);
+  const [state] = await nextState;
+  assert.deepEqual(state.upCalls, [5]);
 });
 
 test('lệnh sai thì server trả lỗi nhưng KHÔNG sập', async () => {
-  const bad = await client.emitWithAck('pickup', { floor: 99, direction: 'UP' });
+  const bad = await client.emitWithAck('callElevator', { floor: 99, direction: 'UP' });
   assert.equal(bad.ok, false);
   assert.match(bad.error, /Invalid floor/);
 
-  const noPayload = await client.emitWithAck('selectFloor');
-  assert.equal(noPayload.ok, false);
+  const empty = await client.emitWithAck('selectFloor', {});
+  assert.equal(empty.ok, false);
 
   const good = await client.emitWithAck('selectFloor', { elevatorId: 'B', floor: 7 });
   assert.deepEqual(good, { ok: true });
