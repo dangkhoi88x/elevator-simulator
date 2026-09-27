@@ -101,6 +101,58 @@ elevators/
 
 ---
 
+## OOP trong dự án
+
+Toàn bộ logic thang máy ở `server/src/domain/` được viết bằng class, không phụ thuộc Express hay Socket.IO.
+
+### Đóng gói (encapsulation)
+
+Trạng thái bên trong dùng trường private `#` của JavaScript, bên ngoài không đọc/ghi trực tiếp được — chỉ đi qua phương thức public.
+
+| Class | Dữ liệu private | Bên ngoài dùng qua |
+|---|---|---|
+| `Elevator` | `#currentFloor`, `#direction`, `#stops`, `#pickups`, `#state` | `addStop()`, `requestPickup()`, `pressOpen()`, `pressClose()`, `step()`; getter chỉ đọc `currentFloor`, `stops`... |
+| `Building` | `#elevators`, `#assignments`, `#strategy`, `#timer` | `requestPickup()`, `selectFloor()`, `pressOpen()`, `pressClose()`, `getSnapshot()` |
+| `DoorOpenState` | `#holdSteps`, `#stepsLeft` | `step()`, `pressOpen()`, `pressClose()` |
+| `ShortestWaitStrategy` | `#stopPenalty` | `selectElevator()` |
+
+Getter trả về **bản sao** (ví dụ `get stops()` trả mảng mới), nên code bên ngoài có sửa mảng nhận được cũng không làm hỏng trạng thái thang. Dữ liệu vào luôn được kiểm tra (`#validateFloor`, `#validateDirection`) trước khi đổi trạng thái.
+
+### Kế thừa (inheritance)
+
+```
+ElevatorState (trừu tượng)          DispatchStrategy (trừu tượng)       EventEmitter (Node.js)
+├── WaitingState                    └── ShortestWaitStrategy            ├── Elevator
+├── MovingState                                                         └── Building
+└── DoorOpenState
+```
+
+- `ElevatorState` và `DispatchStrategy` là **lớp trừu tượng**: gọi `new` trực tiếp sẽ báo lỗi (kiểm tra `new.target`), phương thức bắt buộc (`step()`, `selectElevator()`, `name`) báo lỗi nếu lớp con quên cài đặt.
+- `ElevatorState` cài sẵn hành vi mặc định cho `pressOpen()` / `pressClose()` là **không làm gì**; lớp con nào cần thì ghi đè.
+- `Elevator` và `Building` kế thừa `EventEmitter` để phát sự kiện (`arrived`, `doorOpened`, `update`...) mà không cần biết ai đang nghe.
+
+### Đa hình (polymorphism)
+
+Khi tới nhịp mới hoặc có người bấm mở/đóng cửa, `Elevator` không dùng `if`/`switch` theo trạng thái — nó giao cho đối tượng trạng thái hiện tại:
+
+```js
+step()       { this.#state.step(this); }
+pressOpen()  { this.#state.pressOpen(this); }
+pressClose() { this.#state.pressClose(this); }
+```
+
+Cùng một lời gọi, mỗi trạng thái xử lý khác nhau:
+
+| Lời gọi | `WaitingState` | `MovingState` | `DoorOpenState` |
+|---|---|---|---|
+| `step()` | có yêu cầu thì bắt đầu chạy | đi 1 tầng, tới nơi thì dừng | đếm ngược, hết giờ thì đóng cửa |
+| `pressOpen()` | mở cửa | không làm gì | giữ cửa mở thêm |
+| `pressClose()` | không làm gì | không làm gì | đóng cửa ngay |
+
+Tương tự, `Building` chỉ gọi `this.#strategy.selectElevator(...)` và chỉ kiểm tra strategy có phải là `DispatchStrategy` không. Thuật toán điều phối mới chỉ cần viết một lớp con, không phải sửa `Building` (test `Building dùng đúng strategy được truyền vào` chứng minh điều này).
+
+---
+
 ## Kiến trúc
 
 ```
