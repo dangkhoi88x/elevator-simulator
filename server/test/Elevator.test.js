@@ -146,3 +146,26 @@ test('cửa đang mở mà có người bấm cùng tầng cùng hướng thì c
   assert.equal(e.state, 'DOOR_OPEN');
   assert.deepEqual(e.pickups, { UP: [], DOWN: [] });
 });
+
+test('cửa đang mở, thang không còn việc: người bấm ngược hướng thì thang đổi hướng và giữ cửa luôn', () => {
+  const e = new Elevator('A', 1, { doorHoldSteps: 3 });
+  e.addStop(3);
+  run(e, 2);                   // tới tầng 3 (đang đi lên), cửa mở
+
+  e.requestPickup(3, 'DOWN');
+  assert.equal(e.direction, 'DOWN');
+  assert.deepEqual(e.pickups, { UP: [], DOWN: [] });
+  run(e, 2);
+  assert.equal(e.state, 'DOOR_OPEN'); // không đóng rồi mở lại
+});
+
+test('cửa đang mở nhưng thang còn việc phía trước: người bấm ngược hướng phải chờ lượt quay về', () => {
+  const e = new Elevator('A', 1);
+  e.addStop(3);
+  e.addStop(8);
+  run(e, 2);                   // dừng ở 3, vẫn còn tầng 8 phía trên
+
+  e.requestPickup(3, 'DOWN');
+  assert.equal(e.direction, 'UP');
+  assert.deepEqual(e.pickups.DOWN, [3]);
+});

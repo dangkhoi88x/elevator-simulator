@@ -28,6 +28,8 @@ npm run dev
 
 Mở http://localhost:5173.
 
+> Client cố định cổng 5173 (`strictPort`) vì server chỉ cho phép đúng địa chỉ này. Nếu cổng bận, Vite sẽ báo lỗi — muốn chạy cổng khác thì đổi luôn `CLIENT_ORIGIN` của server.
+
 ### Biến môi trường
 
 Server (`server/.env`, xem `server/.env.example`):
@@ -207,18 +209,21 @@ Khi đi qua một tầng, thang dừng nếu:
 
 Ví dụ: thang đang lên tầng 10, người ở tầng 5 bấm ▼ → thang **không** dừng ở 5 lúc đi lên, mà lên 10 rồi quay xuống mới đón.
 
+Nếu thang **đang mở cửa ngay tầng đó** mà có người bấm gọi đúng hướng thang sắp đi (hoặc thang không còn việc gì), thang chỉ giữ cửa thêm cho khách vào — không đóng cửa rồi mở lại, không điều thang khác tới.
+
 ### Strategy pattern — điều phối
 
 Khi có người bấm ▲▼, `Building` hỏi strategy chọn thang nào. `ShortestWaitStrategy` ước lượng số bước mỗi thang cần để tới nơi:
 
 | Tình huống của thang | Cách ước lượng |
 |---|---|
+| Đang mở cửa ngay tầng gọi, đi được hướng khách muốn | 0 — khách bước vào luôn, thang giữ cửa |
 | Đang rảnh | khoảng cách tới tầng gọi |
 | Cùng hướng, tầng gọi ở phía trước | khoảng cách + số lần dừng dọc đường |
 | Ngược hướng | đi hết chiều hiện tại, quay đầu, về tầng gọi |
 | Cùng hướng nhưng đã đi qua | phải quay đầu hai lần |
 
-Mỗi lần dừng dọc đường và cửa đang mở đều cộng thêm thời gian phạt (`stopPenalty`, mặc định 2 nhịp). Thang có số bước nhỏ nhất được chọn.
+Mỗi lần dừng dọc đường và cửa đang mở (ở tầng khác) đều cộng thêm thời gian phạt (`stopPenalty`, mặc định 2 nhịp). Thang có số bước nhỏ nhất được chọn.
 
 Ví dụ: thang A ở tầng 4 đang lên tầng 10, thang B rảnh ở tầng 1, người ở tầng 5 bấm ▼. Chọn "thang gần nhất" sẽ ra A, nhưng A phải lên 10 rồi mới quay về (11 tầng); `ShortestWait` chọn B (4 tầng).
 
@@ -291,13 +296,13 @@ cd server
 npm test
 ```
 
-24 test với `node:test`, không cần thư viện ngoài:
+28 test với `node:test`, không cần thư viện ngoài:
 
 | File | Kiểm tra |
 |---|---|
-| `Elevator.test.js` | đi lên/xuống, thứ tự dừng, mở/đóng/giữ cửa, dừng đón cùng hướng, quay đầu |
-| `Building.test.js` | cấu hình mặc định, từ chối lệnh sai, đèn nút sáng/tắt, không gọi trùng, nhịp tự chạy |
-| `DispatchStrategy.test.js` | `ShortestWait` chọn đúng thang, `Building` dùng đúng strategy được truyền vào |
+| `Elevator.test.js` | đi lên/xuống, thứ tự dừng, mở/đóng/giữ cửa, dừng đón cùng hướng, quay đầu, bấm gọi khi cửa đang mở |
+| `Building.test.js` | cấu hình mặc định, từ chối lệnh sai, đèn nút sáng/tắt, không gọi trùng, nhịp tự chạy, giữ cửa thay vì điều thang khác |
+| `DispatchStrategy.test.js` | `ShortestWait` chọn đúng thang (kể cả thang đang mở cửa tại chỗ), `Building` dùng đúng strategy được truyền vào |
 | `socket.test.js` | nhận trạng thái khi kết nối, gửi lệnh nhận ack, lệnh sai không làm sập server |
 
 Client hiện chưa có test tự động.

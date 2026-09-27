@@ -69,3 +69,19 @@ test('snapshot cho biết thuật toán điều phối và tầng mỗi thang đ
   const assigned = snap.elevators.filter((e) => e.pickups.UP.includes(5));
   assert.equal(assigned.length, 1);
 });
+
+test('thang đang mở cửa ở tầng gọi thì giữ cửa cho khách, không điều thang khác tới', () => {
+  const b = new Building();
+  b.selectFloor('A', 5);
+  b.selectFloor('B', 4);
+  run(b, 6); // A đang mở cửa ở 5 (sắp đóng), B đã đóng cửa, rảnh ở tầng 4
+
+  b.requestPickup(5, 'UP');
+  b.step();
+
+  const snap = b.getSnapshot();
+  const [a, bCar] = snap.elevators;
+  assert.equal(a.state, 'DOOR_OPEN');                     // A giữ cửa
+  assert.deepEqual(bCar.pickups, { UP: [], DOWN: [] });   // B không bị điều tới
+  assert.deepEqual(snap.pendingPickups, { UP: [], DOWN: [] });
+});

@@ -43,3 +43,12 @@ test('Building dùng đúng strategy được truyền vào', () => {
   assert.deepEqual(moving, ['C']);
   assert.throws(() => new Building({ strategy: {} }));
 });
+
+test('ShortestWait chọn thang đang mở cửa ngay tầng gọi thay vì điều thang khác tới', () => {
+  const elevators = [
+    fakeElevator('A', 5, { state: 'DOOR_OPEN' }), // đang mở cửa ở tầng 5, hướng lên
+    fakeElevator('B', 4),                         // rảnh, chỉ cách 1 tầng
+  ];
+  const chosen = new ShortestWaitStrategy().selectElevator(elevators, 5, 'UP');
+  assert.equal(chosen.id, 'A');
+});

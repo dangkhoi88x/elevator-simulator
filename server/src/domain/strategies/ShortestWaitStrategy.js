@@ -29,6 +29,16 @@ export class ShortestWaitStrategy extends DispatchStrategy {
   estimateWait(elevator, floor, direction) {
     const here = elevator.currentFloor;
     const requests = allRequestFloors(elevator);
+
+    // 0. Đang mở cửa ngay tầng gọi và đi được hướng khách muốn: khách bước vào luôn
+    if (
+      elevator.state === 'DOOR_OPEN' &&
+      here === floor &&
+      (elevator.direction === direction || requests.length === 0)
+    ) {
+      return 0;
+    }
+
     const doorDelay = elevator.state === 'DOOR_OPEN' ? this.#stopPenalty : 0;
 
     // 1. Thang rảnh: đi thẳng tới

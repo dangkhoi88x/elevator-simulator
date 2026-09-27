@@ -63,7 +63,10 @@ export class Elevator extends EventEmitter {
     if (!Object.values(Direction).includes(direction)) {
       throw new Error(`Invalid direction: ${direction}`);
     }
-    if (this.#isDoorOpenHere(floor) && direction === this.#direction) {
+    // Cửa đang mở ngay tầng này và thang đi được hướng khách muốn -> chỉ giữ cửa cho khách vào.
+    // Thang không còn việc gì thì quay sang hướng khách muốn luôn, khỏi đóng cửa rồi mở lại.
+    if (this.#isDoorOpenHere(floor) && (direction === this.#direction || !this.hasRequests())) {
+      this.#direction = direction;
       this.pressOpen();
       return;
     }
