@@ -188,6 +188,12 @@ button:disabled {
   color: #6b7280;
 }
 
+.pickups {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: #b45309;
+}
+
 .floor-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

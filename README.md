@@ -10,7 +10,7 @@ Mỗi **nhịp** (1 giây), mỗi thang đi được 1 tầng.
 
 ![Giao diện Elevator Simulator](docs/screenshot.png)
 
-*Thang A đang đi lên tầng 10 (nút 10 sáng trong bảng của A). Thang B và C đang dừng mở cửa. Nút ▼ ở tầng 9 và tầng 7 sáng vì có người đang chờ đi xuống.*
+*Nút ▼ ở tầng 9 và tầng 7 sáng vì có người đang chờ đi xuống. Thang A đang đi lên tầng 10 (nút 10 sáng) và được giao đón người ở tầng 7 (`Picking up: 7▼`). Thang B đang mở cửa ở tầng 4, sau đó sẽ đi đón người ở tầng 9. Thang C đang mở cửa ở tầng 3.*
 
 ---
 
@@ -47,12 +47,15 @@ cd server && npm test   # chạy test
 
 Client luôn chạy ở cổng 5173 (nếu cổng bận, Vite báo lỗi thay vì tự đổi cổng — vì server chỉ cho phép đúng địa chỉ này).
 
+> **Lưu ý khi đổi `STEP_INTERVAL_MS`:** cabin trên giao diện trượt giữa hai tầng trong **1 giây** (`transition: bottom 1s` trong `client/src/index.css`), khớp với nhịp mặc định. Đổi độ dài nhịp ở server thì sửa luôn con số `1s` này cho bằng nhau, nếu không cabin sẽ trượt lệch nhịp.
+
 ---
 
 ## Cách dùng
 
 - **Ở mỗi tầng:** bấm ▲ hoặc ▼ để gọi thang. Nút sáng màu cam khi đang chờ, tắt khi thang tới.
-- **Trong từng thang** (bảng bên phải): bấm số tầng để chọn nơi muốn đến; **Open** giữ cửa mở lâu hơn, **Close** đóng cửa ngay.
+- **Thang nào tới đón bạn?** Thẻ của thang được giao hiện dòng **Picking up**, ví dụ `Picking up: 5▲`.
+- **Trong từng thang** (bảng bên phải): khi thang tới, bấm số tầng để chọn nơi muốn đến; **Open** giữ cửa mở lâu hơn, **Close** đóng cửa ngay.
 
 ### Luật dừng theo hướng (theo đề bài)
 
