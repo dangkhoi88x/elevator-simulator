@@ -8,6 +8,10 @@ Web app mô phỏng **3 thang máy chạy song song trong toà nhà 10 tầng**.
 
 Mỗi **nhịp** (1 giây), mỗi thang đi được 1 tầng.
 
+![Giao diện Elevator Simulator](docs/screenshot.png)
+
+*Thang A đang đi lên tầng 10 (nút 10 sáng trong bảng của A). Thang B và C đang dừng mở cửa. Nút ▼ ở tầng 9 và tầng 7 sáng vì có người đang chờ đi xuống.*
+
 ---
 
 ## Chạy dự án
