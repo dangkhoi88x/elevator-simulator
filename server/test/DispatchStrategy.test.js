@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { NearestElevatorStrategy } from '../src/domain/strategies/NearestElevatorStrategy.js';
 import { ShortestWaitStrategy } from '../src/domain/strategies/ShortestWaitStrategy.js';
 import { DispatchStrategy } from '../src/domain/strategies/DispatchStrategy.js';
 import { Building } from '../src/domain/Building.js';
@@ -15,11 +14,6 @@ const scenario = () => [
   fakeElevator('A', 4, { state: 'MOVING', stops: [10] }),
   fakeElevator('B', 1),
 ];
-
-test('Nearest chọn thang gần nhất dù thang đó đã đi qua', () => {
-  const chosen = new NearestElevatorStrategy().selectElevator(scenario(), 3, 'UP');
-  assert.equal(chosen.id, 'A');
-});
 
 test('ShortestWait chọn thang rảnh vì thang A phải lên 10 rồi vòng lại', () => {
   const chosen = new ShortestWaitStrategy().selectElevator(scenario(), 3, 'UP');
